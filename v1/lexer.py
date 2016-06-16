@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 
-def scan(content):
+def scan(content, verbose=False):
     tokens = []
     return tokens

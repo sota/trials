@@ -1,5 +1,5 @@
 #!/usr/bin/env python
 
-def parse(tokens):
+def parse(tokens, verbose=False):
     bytecodes = []
     return bytecodes
