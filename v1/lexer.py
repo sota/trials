@@ -25,7 +25,7 @@ def scan(content, verbose):
             if match:
                 value = match.group(0)
                 if kind:
-                    tokens += [Token(kind, value, line(previous), pos(previous))]
+                    tokens += [Token(kind, line(previous), pos(previous), value)]
                 break
         if not match:
             sys.stderr.write('illegal character: %s\n' % content[index])
