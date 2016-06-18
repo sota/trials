@@ -6,6 +6,7 @@ import imp
 import sys
 sys.dont_write_bytecode = True
 
+from pprint import pprint
 from argparse import ArgumentParser
 
 VERSION = 'v1'
@@ -34,8 +35,14 @@ if __name__ == '__main__':
     content = ns.source
     if os.path.isfile(ns.source):
         content = open(ns.source).read()
-    tokens = lexer.scan(content)
-    bytecodes = parser.parse(tokens)
-    exitcode = vm.execute(bytecodes)
+    tokens = lexer.scan(content, ns.verbose)
+    if ns.verbose:
+        pprint({'tokens':tokens})
+    bytecodes = parser.parse(tokens, ns.verbose)
+    if ns.verbose:
+        pprint({'bytecodes':bytecodes})
+    exitcode = vm.execute(bytecodes, ns.verbose)
+    if ns.verbose:
+        pprint({'exitcode':exitcode})
     sys.exit(exitcode)
 
