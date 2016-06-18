@@ -17,12 +17,12 @@ vm = imp.load_source('vm', VERSION+'/vm.py')
 if __name__ == '__main__':
     ap = ArgumentParser()
     ap.add_argument(
-        '--version',
+        '-V', '--version',
         action='version',
         version=VERSION,
         help='print the version and exit')
     ap.add_argument(
-        '--verbose',
+        '-v', '--verbose',
         action='store_true',
         help='print verbosely')
     ap.add_argument(
@@ -36,13 +36,7 @@ if __name__ == '__main__':
     if os.path.isfile(ns.source):
         content = open(ns.source).read()
     tokens = lexer.scan(content, ns.verbose)
-    if ns.verbose:
-        pprint({'tokens':tokens})
     bytecodes = parser.parse(tokens, ns.verbose)
-    if ns.verbose:
-        pprint({'bytecodes':bytecodes})
     exitcode = vm.execute(bytecodes, ns.verbose)
-    if ns.verbose:
-        pprint({'exitcode':exitcode})
     sys.exit(exitcode)
 

@@ -1,26 +1,37 @@
 #!/usr/bin/env python
 
 import sys
+
+from pprint import pprint
 from v1.tokens import Token, TOKENS
+
+def escape(s):
+    return s.replace('\n', '\\n').replace('\t', '\\t')
+
+def line(s):
+    return s.count('\n') + 1
+
+def pos(s):
+    return len(s) - s.rfind('\n')
 
 def scan(content, verbose):
     tokens = []
-    pos = 0
-    while pos < len(content):
+    index = 0
+    while index < len(content):
         match = None
+        previous = content[0:index]
         for regex, kind in TOKENS:
-            match = regex.match(content, pos)
+            match = regex.match(content, index)
             if match:
-                name = match.group(0)
+                value = match.group(0)
                 if kind:
-                    token = Token(name, kind, 0, 0, False)
-                    tokens += [token]
+                    tokens += [Token(kind, value, line(previous), pos(previous))]
                 break
         if not match:
-            sys.stderr.write('illegal character: %s\n' % content[pos])
+            sys.stderr.write('illegal character: %s\n' % content[index])
             sys.exit(1)
         else:
-            pos = match.end(0)
+            index = match.end(0)
     if verbose:
-        print tokens
+        pprint({'tokens':tokens})
     return tokens
