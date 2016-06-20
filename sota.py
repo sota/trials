@@ -12,6 +12,7 @@ from argparse import ArgumentParser
 VERSION = 'v1'
 lexer = imp.load_source('lexer', VERSION+'/lexer.py')
 parser = imp.load_source('parser', VERSION+'/parser.py')
+patterns = imp.load_source('patterns', VERSION+'/patterns.py')
 vm = imp.load_source('vm', VERSION+'/vm.py')
 
 if __name__ == '__main__':
@@ -27,16 +28,20 @@ if __name__ == '__main__':
         help='print verbosely')
     ap.add_argument(
         'source',
+        default=None,
+        nargs='?',
         help='text | file')
 
     ns = ap.parse_args()
     print ns
 
-    content = ns.source
-    if os.path.isfile(ns.source):
-        content = open(ns.source).read()
-    tokens = lexer.scan(content, ns.verbose)
-    bytecodes = parser.parse(tokens, ns.verbose)
-    exitcode = vm.execute(bytecodes, ns.verbose)
+    lexer = lexer.Lexer(patterns.PATTERNS, ns.verbose)
+    parser = parser.Parser(lexer, ns.verbose)
+
+    if ns.source:
+        exitcode = parser.Parse(ns.source)
+    else:
+        exitcode = parser.Repl()
+
     sys.exit(exitcode)
 
