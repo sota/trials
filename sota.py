@@ -65,13 +65,16 @@ if __name__ == '__main__':
     ns = ap.parse_args()
     print ns
 
+    lexer = lexer.Lexer(patterns.PATTERNS, ns.verbose)
+    parser = parser.Parser(ns.verbose)
+
+    if not ns.source:
+        exitcode = repl(lexer, parser)
+
     if os.path.isfile(ns.source):
         source = open(ns.source).read()
     else:
         source = '(print %s)' % ns.source
-
-    lexer = lexer.Lexer(patterns.PATTERNS, ns.verbose)
-    parser = parser.Parser(ns.verbose)
 
     tokens = lexer.Scan(source)
     exitcode = parser.Parse(tokens)
