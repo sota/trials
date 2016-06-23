@@ -8,20 +8,50 @@ from v1.environment import *
 from v1.expressions import *
 
 class Parser(object):
-    def __init__(self, lexer, verbose):
-        assert lexer
-        self.lexer = lexer
+    def __init__(self, verbose):
+        self.index = 0
         self.verbose = verbose
 
-    def Parse(self, source):
+    def Lookahead(self, distance, expect=None, skips=False):
+        index = self.index
+        token = None
+        while distance:
+            if index < len(self.tokens):
+                token = self.tokens[index]
+            else:
+                break
+            if token:
+                #if skips: # or not token.skip:
+                distance -= 1
+            index += 1
+        distance = index - self.index
+        return token, distance, (token.kind == expect) if token and expect else expect
+
+    def Lookahead1(self, expect=None):
+        return self.Lookahead(1, expect)
+
+    def Lookahead2(self, expect=None):
+        return self.Lookahead(2, expect)
+
+    def Consume(self, *expects):
+        token, distance, _ = self.Lookahead1()
+        if not token:
+            raise Exception
+        if len(expects):
+            for expect in expects:
+                if expect == token.name:
+                    self.index += distance
+                    return token
+            return None
+        self.index += distance
+        return token
+    def Parse(self, tokens):
+        assert tokens
+        self.tokens = tokens
         exitcode = 0
         env = Env
-        if os.path.isfile(source):
-            source = open(source).read()
-        else:
-            source = "(print " + source + ")"
         try:
-            code = self.Read(source)
+            code = self.Read()
             if self.verbose:
                 print 'code =', code
             self.Eval(code, env)
@@ -29,36 +59,8 @@ class Parser(object):
             raise
         return exitcode
 
-    def Repl(self):
-        exitcode = 0
-        env = Env
-        farewell = "so, ta-ta for now!"
-        print REPL_USAGE
-        prompt = "sota> "
-        while True:
-            os.write(1, prompt)
-            source = None
-            try:
-                source = get_input()
-                if source == '\n':
-                    continue
-                code = self.Read(source)
-                exp = self.Eval(code, env)
-                if exp is None:
-                    print farewell
-                    break
-                self.Print(exp)
-            except KeyboardInterrupt:
-                break
-            except EOFError:
-                print farewell
-                break
-        return exitcode
-
-    def Read(self, source=None):
-        if source:
-            self.lexer.Scan(source)
-        token = self.lexer.Consume()
+    def Read(self):
+        token = self.Consume()
         if token.is_kind('ID'):
             if token.is_id('true'):
                 return SastBool.true
@@ -81,31 +83,31 @@ class Parser(object):
         return SastUndefined()
 
     def ReadPair(self):
-        token, _, _ = self.lexer.Lookahead1()
+        token, _, _ = self.Lookahead1()
         assert token
         if token.is_kind(')'):
-            self.lexer.Consume()
+            self.Consume()
             return nil
         car = self.Read()
-        token, _, _ = self.lexer.Lookahead1()
+        token, _, _ = self.Lookahead1()
         assert token
         if token.is_kind('.'):
-            self.lexer.Consume()
+            self.Consume()
             cdr = self.Read()
-            if not self.lexer.Consume(')'):
+            if not self.Consume(')'):
                 raise Exception
         else:
             cdr = self.ReadPair()
         return SastPair(car, cdr)
 
     def ReadBlock(self):
-        token, _, _ = self.lexer.Lookahead1()
+        token, _, _ = self.Lookahead1()
         assert token
         if token.is_kind('}'):
-            self.lexer.Consume()
+            self.Consume()
             return nil
         car = self.Read()
-        token, _, _ = self.lexer.Lookahead1()
+        token, _, _ = self.Lookahead1()
         assert token
         cdr = self.ReadBlock()
         return SastPair(car, cdr)
