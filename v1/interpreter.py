@@ -67,82 +67,82 @@ class Interpreter(object):
     def HALT(self):
         self.running = False
 
-    def MOVE(self, r0, r1):
-        assert isinstance(r0, Register)
-        assert isinstance(r1, Register)
-        self.set_register(r0, r1)
+    def MOVE(self, *args):
+        assert isinstance(args[0], Register)
+        assert isinstance(args[1], Register)
+        self.set_register(*args)
 
-    def SWAP(self, r0, r1, r2):
-        assert isinstance(r0, Register)
-        assert isinstance(r1, Register)
-        assert isinstance(r2, Register)
-        self.set_register(r0, r1)
-        self.set_register(r1, r2)
-        self.set_register(r2, r0)
+    def SWAP(self, *args):
+        assert isinstance(args[0], Register)
+        assert isinstance(args[1], Register)
+        assert isinstance(args[2], Register)
+        self.set_register(args[0], args[1])
+        self.set_register(args[1], args[2])
+        self.set_register(args[2], args[0])
 
-    def LOAD(self, r, v):
-        self.set_register(r, v)
+    def LOAD(self, *args):
+        self.set_register(*args)
 
     def JUMP(self, v):
         assert isinstance(v, int)
         self.ip += v
 
-    def JUMPT(self, r, v):
-        z = self.get_register(r)
+    def JUMPT(self, *args):
+        z = self.get_register(args[0])
         if z == True:
-            self.JUMP(v)
+            self.JUMP(args[1])
 
-    def JUMPF(self, r, v):
-        z = self.get_register(r)
+    def JUMPF(self, *args):
+        z = self.get_register(args[0])
         if z == False:
-            self.JUMP(v)
+            self.JUMP(args[1])
 
-    def CMP(self, r0, r1, r2):
-        v1 = self.get_register(r1)
-        v2 = self.get_register(r2)
-        self.set_register(r0, v1 < v2)
+    def CMP(self, *args):
+        v1 = self.get_register(args[1])
+        v2 = self.get_register(args[2])
+        self.set_register(args[0], v1 < v2)
 
-    def ADD(self, r0, r1, r2):
-        assert isinstance(r0, Register)
-        v1 = self.get_number(r1)
-        v2 = self.get_number(r2)
-        self.set_register(r0, v1 + v2)
+    def ADD(self, *args):
+        assert isinstance(args[0], Register)
+        v1 = self.get_number(args[1])
+        v2 = self.get_number(args[2])
+        self.set_register(args[0], v1 + v2)
 
-    def SUB(self, r0, r1, r2):
-        assert isinstance(r0, Register)
-        v1 = self.get_number(r1)
-        v2 = self.get_number(r2)
-        self.set_register(r0, v1 - v2)
+    def SUB(self, *args):
+        assert isinstance(args[0], Register)
+        v1 = self.get_number(args[1])
+        v2 = self.get_number(args[2])
+        self.set_register(args[0], v1 - v2)
 
-    def MUL(self, r0, r1, r2):
-        assert isinstance(r0, Register)
-        v1 = self.get_number(r1)
-        v2 = self.get_number(r2)
-        self.set_register(r0, v1 * v2)
+    def MUL(self, *args):
+        assert isinstance(args[0], Register)
+        v1 = self.get_number(args[1])
+        v2 = self.get_number(args[2])
+        self.set_register(args[0], v1 * v2)
 
-    def DIV(self, r0, r1, r2):
-        assert isinstance(r0, Register)
-        v1 = self.get_number(r1)
-        v2 = self.get_number(r2)
-        self.set_register(r0, v1 / v2)
+    def DIV(self, *args):
+        assert isinstance(args[0], Register)
+        v1 = self.get_number(args[1])
+        v2 = self.get_number(args[2])
+        self.set_register(args[0], v1 / v2)
 
-    def MOD(self, r0, r1, r2):
-        assert isinstance(r0, Register)
-        v1 = self.get_number(r1)
-        v2 = self.get_number(r2)
-        self.set_register(r0, v1 % v2)
+    def MOD(self, *args):
+        assert isinstance(args[0], Register)
+        v1 = self.get_number(args[1])
+        v2 = self.get_number(args[2])
+        self.set_register(args[0], v1 % v2)
 
-    def POW(self, r0, r1, r2):
-        assert isinstance(r0, Register)
-        v1 = self.get_number(r1)
-        v2 = self.get_number(r2)
-        self.set_register(r0, v1 ** v2)
+    def POW(self, *args):
+        assert isinstance(args[0], Register)
+        v1 = self.get_number(args[1])
+        v2 = self.get_number(args[2])
+        self.set_register(args[0], v1 ** v2)
 
-    def CONCAT(self, r0, r1, r2):
-        assert isinstance(r0, Register)
-        v1 = self.get_string(r1)
-        v2 = self.get_string(r2)
-        self.set_register(r0, v1 + v2)
+    def CONCAT(self, *args):
+        assert isinstance(args[0], Register)
+        v1 = self.get_string(args[1])
+        v2 = self.get_string(args[2])
+        self.set_register(args[0], v1 + v2)
 
     def PRINT(self, r):
         v = self.get_register(r)
@@ -157,21 +157,21 @@ class Interpreter(object):
 if __name__ == '__main__':
 
     bytecodes = [
-#        ('PRINT', 'hello world'),
-#        ('LOAD', Register(1), 10),
-#        ('LOAD', Register(2), 20),
-#        ('LOAD', Register(3), 30),
-#        ('ADD', Register(0), Register(1), Register(2)),
-#        ('PRINT', Register(0)),
-#        ('ADD', Register(0), 10, 20),
-#        ('PRINT', Register(0)),
-#        ('CONCAT', Register(0), 'scott', 'idler'),
-#        ('PRINT', Register(0)),
-#        ('PRINT', Register(1)),
-#        ('PRINT', Register(2)),
-#        ('SWAP', Register(0), Register(1), Register(2)),
-#        ('PRINT', Register(1)),
-#        ('PRINT', Register(2)),
+        ('PRINT', 'hello world'),
+        ('LOAD', Register(1), 10),
+        ('LOAD', Register(2), 20),
+        ('LOAD', Register(3), 30),
+        ('ADD', Register(0), Register(1), Register(2)),
+        ('PRINT', Register(0)),
+        ('ADD', Register(0), 10, 20),
+        ('PRINT', Register(0)),
+        ('CONCAT', Register(0), 'scott', 'idler'),
+        ('PRINT', Register(0)),
+        ('PRINT', Register(1)),
+        ('PRINT', Register(2)),
+        ('SWAP', Register(0), Register(1), Register(2)),
+        ('PRINT', Register(1)),
+        ('PRINT', Register(2)),
         ('CMP', Register(0), 4, 3),
         ('JUMPF', Register(0), 2),
         ('PRINT', 'true'),
