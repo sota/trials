@@ -15,6 +15,10 @@ class Interpreter(object):
             'MOVE':     self.MOVE,
             'SWAP':     self.SWAP,
             'LOAD':     self.LOAD,
+            'JUMP':     self.JUMP,
+            'JUMPT':    self.JUMPT,
+            'JUMPF':    self.JUMPF,
+            'CMP':      self.CMP,
             'ADD':      self.ADD,
             'SUB':      self.SUB,
             'MUL':      self.MUL,
@@ -23,6 +27,8 @@ class Interpreter(object):
             'POW':      self.POW,
             'CONCAT':   self.CONCAT,
             'PRINT':    self.PRINT,
+            'FUNC':     self.FUNC,
+            'CALL':     self.CALL,
         }
 
     def execute(self, ip=None):
@@ -58,9 +64,6 @@ class Interpreter(object):
         assert isinstance(v, str)
         return v
 
-    def LOAD(self, r, v):
-        self.set_register(r, v)
-
     def HALT(self):
         self.running = False
 
@@ -76,6 +79,28 @@ class Interpreter(object):
         self.set_register(r0, r1)
         self.set_register(r1, r2)
         self.set_register(r2, r0)
+
+    def LOAD(self, r, v):
+        self.set_register(r, v)
+
+    def JUMP(self, v):
+        assert isinstance(v, int)
+        self.ip += v
+
+    def JUMPT(self, r, v):
+        z = self.get_register(r)
+        if z == True:
+            self.JUMP(v)
+
+    def JUMPF(self, r, v):
+        z = self.get_register(r)
+        if z == False:
+            self.JUMP(v)
+
+    def CMP(self, r0, r1, r2):
+        v1 = self.get_register(r1)
+        v2 = self.get_register(r2)
+        self.set_register(r0, v1 < v2)
 
     def ADD(self, r0, r1, r2):
         assert isinstance(r0, Register)
@@ -123,24 +148,35 @@ class Interpreter(object):
         v = self.get_register(r)
         print v
 
+    def FUNC(self, *args):
+        raise NotImplementedError
+
+    def CALL(self, *args):
+        raise NotImplementedError
+
 if __name__ == '__main__':
 
     bytecodes = [
-        ('PRINT', 'hello world'),
-        ('LOAD', Register(1), 10),
-        ('LOAD', Register(2), 20),
-        ('LOAD', Register(3), 30),
-        ('ADD', Register(0), Register(1), Register(2)),
-        ('PRINT', Register(0)),
-        ('ADD', Register(0), 10, 20),
-        ('PRINT', Register(0)),
-        ('CONCAT', Register(0), 'scott', 'idler'),
-        ('PRINT', Register(0)),
-        ('PRINT', Register(1)),
-        ('PRINT', Register(2)),
-        ('SWAP', Register(0), Register(1), Register(2)),
-        ('PRINT', Register(1)),
-        ('PRINT', Register(2)),
+#        ('PRINT', 'hello world'),
+#        ('LOAD', Register(1), 10),
+#        ('LOAD', Register(2), 20),
+#        ('LOAD', Register(3), 30),
+#        ('ADD', Register(0), Register(1), Register(2)),
+#        ('PRINT', Register(0)),
+#        ('ADD', Register(0), 10, 20),
+#        ('PRINT', Register(0)),
+#        ('CONCAT', Register(0), 'scott', 'idler'),
+#        ('PRINT', Register(0)),
+#        ('PRINT', Register(1)),
+#        ('PRINT', Register(2)),
+#        ('SWAP', Register(0), Register(1), Register(2)),
+#        ('PRINT', Register(1)),
+#        ('PRINT', Register(2)),
+        ('CMP', Register(0), 4, 3),
+        ('JUMPF', Register(0), 2),
+        ('PRINT', 'true'),
+        ('JUMP', 1),
+        ('PRINT', 'false'),
         ('HALT',),
     ]
     interpreter = Interpreter(bytecodes)
