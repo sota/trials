@@ -10,10 +10,19 @@ from pprint import pprint
 from argparse import ArgumentParser
 
 VERSION = 'v1'
-lexer = imp.load_source('lexer', VERSION+'/lexer.py')
-parser = imp.load_source('parser', VERSION+'/parser.py')
-patterns = imp.load_source('patterns', VERSION+'/patterns.py')
-vm = imp.load_source('vm', VERSION+'/vm.py')
+sys.path.insert(0, VERSION)
+from lexer import Lexer
+from parser import Parser
+from virtualmachine import VirtualMachine
+from patterns import PATTERNS
+from environment import Env
+
+REPL_USAGE = '''
+Usage
+'''
+
+def get_input():
+    raise NotImplementedError
 
 #FIXME: what to do with this?
 def repl(lexer, parser):
@@ -65,8 +74,9 @@ if __name__ == '__main__':
     ns = ap.parse_args()
     print ns
 
-    lexer = lexer.Lexer(patterns.PATTERNS, ns.verbose)
-    parser = parser.Parser(ns.verbose)
+    lexer = Lexer(PATTERNS, ns.verbose)
+    parser = Parser(ns.verbose)
+    vm = VirtualMachine()
 
     if not ns.source:
         exitcode = repl(lexer, parser)
@@ -77,7 +87,8 @@ if __name__ == '__main__':
         source = '(print %s)' % ns.source
 
     tokens = lexer.Scan(source)
-    exitcode = parser.Parse(tokens)
+    opcodes = parser.Parse(tokens)
+    exitcode =vm.Execute(opcodes)
 
     sys.exit(exitcode)
 
