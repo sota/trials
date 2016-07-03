@@ -1,58 +1,104 @@
-#q/usr/bin/env python
+#!/usr/bin/env python
 
-class R(int):
+class Register(int):
     '''
     Register: differentiate from int
     '''
     def __new__(cls, *args, **kwargs):
         return int.__new__(cls, *args, **kwargs)
 
+class Number(int):
+    def __new__(cls, *args, **kwargs):
+        return int.__new__(cls, *args, **kwargs)
+
+class String(str):
+    def __new__(cls, *args, **kwargs):
+        return str.__new__(cls, *args, **kwargs)
+
+class Symbol(str):
+    def __new__(cls, *args, **kwargs):
+        return str.__new__(cls, *args, **kwargs)
+
+def isregister(*objs):
+    return all(map(lambda obj: isinstance(obj, Register), objs))
+
+def isnumber(*objs):
+    return all(map(lambda obj: isinstance(obj, Number), objs))
+
+def isstring(*objs):
+    return all(map(lambda obj: isinstance(obj, String), objs))
+
+def issymbol(*objs):
+    return all(map(lambda obj: isinstance(obj, Symbol), objs))
+
+def isdict(*objs):
+    return all(map(lambda obj: isinstance(obj, dict), objs))
+
 class Function(object):
     def __init__(self, code, env):
         self.code = code
         self.env = env
 
-class VirtualMachine(object):
-    def __init__(self):
+    def __repr__(self):
+        return 'Function(code=%s, env=%s)' % (self.code, self.env)
+
+    def Call(self, *args):
+        frame = Frame(func, env)
+        return frame.Execute(*args)
+
+class Frame(object):
+    def __init__(self, opcodes, env, parent=None):
+        self.opcodes = opcodes
+        self.env = env
+        self.parent = parent
         self.registers = []
-        self.opcodes = []
         self.ip = 0
         self.running = False
-        self.ops = {
-            'HALT':     self.HALT,
-            'MOVE':     self.MOVE,
-            'SWAP':     self.SWAP,
-            'LOAD':     self.LOAD,
-            'JUMP':     self.JUMP,
-            'JUMPT':    self.JUMPT,
-            'JUMPF':    self.JUMPF,
-            'CMP':      self.CMP,
-            'ADD':      self.ADD,
-            'SUB':      self.SUB,
-            'MUL':      self.MUL,
-            'DIV':      self.DIV,
-            'MOD':      self.MOD,
-            'POW':      self.POW,
-            'CONCAT':   self.CONCAT,
-            'PRINT':    self.PRINT,
-            'FUNC':     self.FUNC,
-            'CALL':     self.CALL,
-        }
 
-    def execute(self, opcodes, ip=None):
-        if opcodes:
-            self.opcodes = opcodes
-        if ip is not None:
-            self.ip = ip
+    def __repr__(self):
+        return 'Frame(opcodes=%s, env=%s, parent=%s)' % (self.opcodes, env, parent)
+
+    def __str__(self):
+        return '''Frame:
+            opcodes = %(opcodes)s
+            env = %(env)s
+            parent = %(parent)s
+            registers = %(registers)s
+            ip = %(ip)s
+            running = %(running)s
+        ''' % self.__dict__
+
+    def Execute(self):
+        self.ip = 0
         self.running = True
         while self.running:
             opcode = self.opcodes[self.ip]
             op = opcode[0]
-            self.ops[op](*opcode[1:])
+            args = opcode[1:]
+            result = self.dispatch(op, *args)
+            if result == 'exception':
+                raise NotImplementedError
+            if result == 'reraise':
+                result = 'exception'
+
+            if result != 'yield':
+                pass
             self.ip += 1
+        return result
+
+    def dispatch(self, op, *args):
+        result = None
+        if op.startswith('UNARY_'):
+            raise NotImplementedError
+        elif op.startswith('BINARY_'):
+            raise NotImplementedError
+        else:
+            func = getattr(self, op, None)
+            result = func(*args)
+        return result
 
     def set_register(self, r0, r1):
-        assert isinstance(r0, R)
+        assert isregister(r0)
         v1 = self.get_register(r1)
         length = len(self.registers)
         if length <= r0:
@@ -60,41 +106,55 @@ class VirtualMachine(object):
         self.registers[r0] = v1
 
     def get_register(self, r):
-        if isinstance(r, R):
+        if isregister(r):
             return self.registers[r]
         return r
 
     def get_number(self, r):
         v = self.get_register(r)
-        assert isinstance(v, int)
+        assert isnumber(v)
         return v
 
     def get_string(self, r):
         v = self.get_register(r)
-        assert isinstance(v, str)
+        assert isstring(v)
         return v
 
-    def HALT(self):
-        self.running = False
+    def get_symbol(self, r):
+        v = self.get_register(r)
+        assert issymbol(v)
+        return v
+
+    def get_environment(self, r):
+        v = self.get_register(r)
+        assert isdict(v)
+        return v
 
     def MOVE(self, *args):
-        assert isinstance(args[0], R)
-        assert isinstance(args[1], R)
+        assert isregister(*args)
         self.set_register(*args)
 
     def SWAP(self, *args):
-        assert isinstance(args[0], R)
-        assert isinstance(args[1], R)
-        assert isinstance(args[2], R)
+        assert isregister(*args)
         self.set_register(args[0], args[1])
         self.set_register(args[1], args[2])
         self.set_register(args[2], args[0])
 
     def LOAD(self, *args):
+        key = self.get_symbol(args[1])
+        value = self.env[key]
+        self.set_register(args[0], value)
+
+    def LOADK(self, *args):
         self.set_register(*args)
 
+    def STORE(self, *args):
+        key = self.get_symbol(args[0])
+        value = self.get_register(args[1])
+        self.env[key] = value
+
     def JUMP(self, v):
-        assert isinstance(v, int)
+        assert isnumber(v)
         self.ip += v
 
     def JUMPT(self, *args):
@@ -113,43 +173,43 @@ class VirtualMachine(object):
         self.set_register(args[0], v1 < v2)
 
     def ADD(self, *args):
-        assert isinstance(args[0], R)
+        assert isregister(args[0])
         v1 = self.get_number(args[1])
         v2 = self.get_number(args[2])
         self.set_register(args[0], v1 + v2)
 
     def SUB(self, *args):
-        assert isinstance(args[0], R)
+        assert isregister(args[0])
         v1 = self.get_number(args[1])
         v2 = self.get_number(args[2])
         self.set_register(args[0], v1 - v2)
 
     def MUL(self, *args):
-        assert isinstance(args[0], R)
+        assert isregister(args[0])
         v1 = self.get_number(args[1])
         v2 = self.get_number(args[2])
         self.set_register(args[0], v1 * v2)
 
     def DIV(self, *args):
-        assert isinstance(args[0], R)
+        assert isregister(args[0])
         v1 = self.get_number(args[1])
         v2 = self.get_number(args[2])
         self.set_register(args[0], v1 / v2)
 
     def MOD(self, *args):
-        assert isinstance(args[0], R)
+        assert isregister(args[0])
         v1 = self.get_number(args[1])
         v2 = self.get_number(args[2])
         self.set_register(args[0], v1 % v2)
 
     def POW(self, *args):
-        assert isinstance(args[0], R)
+        assert isregister(args[0])
         v1 = self.get_number(args[1])
         v2 = self.get_number(args[2])
         self.set_register(args[0], v1 ** v2)
 
     def CONCAT(self, *args):
-        assert isinstance(args[0], R)
+        assert isregister(args[0])
         v1 = self.get_string(args[1])
         v2 = self.get_string(args[2])
         self.set_register(args[0], v1 + v2)
@@ -159,35 +219,86 @@ class VirtualMachine(object):
         print v
 
     def FUNC(self, *args):
-        raise NotImplementedError
+        code = self.get_register(args[0])
 
     def CALL(self, *args):
-        raise NotImplementedError
+        code = self.get_register(args[1])
+        frame = Frame(code.opcodes, {})
+        VirtualMachine().frames += [frame]
+        VirtualMachine().fp += 1
+        result = frame.Execute()
+        self.set_register(args[0], result)
+
+    def RETURN(self, *args):
+        self.running = False
+        v = self.get_register(args[1])
+        self.set_register(args[0], v)
+
+    def EXIT(self, r):
+        self.running = False
+        VirtualMachine().exitcode = self.get_number(r)
+
+class VirtualMachine(object):
+    # http://code.activestate.com/recipes/66531-singleton-we-dont-need-no-stinkin-singleton-the-bo/
+    __shared_state__ = {
+        'fp': 0,
+        'frames': [],
+        'exitcode': None,
+    }
+    def __init__(self):
+        self.__dict__ = self.__shared_state__
+
+    def Execute(self, code):
+        self.frames = [Frame(code, {})]
+        while self.fp < len(self.frames):
+            self.frames[self.fp].Execute()
+            self.fp += 1
+        print 'VM.Execute: exitcode =', self.exitcode
+
+class Code(object):
+    '''
+    represents compiled code
+    in this case all of the opcodes for the function
+    '''
+    def __init__(self, opcodes):
+        self.opcodes = opcodes
 
 if __name__ == '__main__':
 
     opcodes = [
-        ('PRINT', 'hello world'),
-        ('LOAD', R(1), 10),
-        ('LOAD', R(2), 20),
-        ('LOAD', R(3), 30),
-        ('ADD', R(0), R(1), R(2)),
-        ('PRINT', R(0)),
-        ('ADD', R(0), 10, 20),
-        ('PRINT', R(0)),
-        ('CONCAT', R(0), 'scott', 'idler'),
-        ('PRINT', R(0)),
-        ('PRINT', R(1)),
-        ('PRINT', R(2)),
-        ('SWAP', R(0), R(1), R(2)),
-        ('PRINT', R(1)),
-        ('PRINT', R(2)),
-        ('CMP', R(0), 4, 3),
-        ('JUMPF', R(0), 2),
-        ('PRINT', 'true'),
-        ('JUMP', 1),
-        ('PRINT', 'false'),
-        ('HALT',),
+            ('STORE', Symbol('main'), Code([
+            ('PRINT',   String('hello world')),
+            ('LOADK',   Register(1), Number(10)),
+            ('LOADK',   Register(2), Number(20)),
+            ('LOADK',   Register(3), Number(30)),
+            ('ADD',     Register(0), Register(1), Register(2)),
+            ('PRINT',   Register(0)),
+            ('ADD',     Register(0), Number(10), Number(20)),
+            ('PRINT',   Register(0)),
+            ('CONCAT',  Register(0), String('scott'), String('idler')),
+            ('PRINT',   Register(0)),
+            ('PRINT',   Register(1)),
+            ('PRINT',   Register(2)),
+            ('SWAP',    Register(0), Register(1), Register(2)),
+            ('PRINT',   Register(1)),
+            ('PRINT',   Register(2)),
+            ('CMP',     Register(0), Number(4), Number(3)),
+            ('JUMPF',   Register(0), Number(2)),
+            ('PRINT',   String('true')),
+            ('JUMP',    Number(1)),
+            ('PRINT',   String('false')),
+            ('STORE',   Symbol('donkey'), String('punch')),
+            ('LOAD',    Register(0), Symbol('donkey')),
+            ('PRINT',   Register(0)),
+            ('STORE',   Symbol('smash'), String('mouth')),
+            ('LOAD',    Register(1), Symbol('smash')),
+            ('PRINT',   Register(1)),
+            ('RETURN', Register(0), Number(0)),
+        ])),
+        ('LOAD', Register(1), Symbol('main')),
+        ('CALL', Register(0), Register(1)),
+        ('LOADK',   Register(0), Number(0)),
+        ('EXIT',    Register(0)),
     ]
-    vm = VirtualMachine()
-    vm.execute(opcodes)
+
+    VirtualMachine().Execute(opcodes)
