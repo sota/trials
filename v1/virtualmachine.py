@@ -224,8 +224,8 @@ class Frame(object):
     def CALL(self, *args):
         opcodes = self.get_register(args[1])
         frame = Frame(opcodes, {})
-        VirtualMachine().frames += [frame]
-        VirtualMachine().fp += 1
+        VM.frames += [frame]
+        VM.fp += 1
         result = frame.Execute()
         self.set_register(args[0], result)
 
@@ -236,23 +236,22 @@ class Frame(object):
 
     def EXIT(self, r):
         self.running = False
-        VirtualMachine().exitcode = self.get_number(r)
+        VM.exitcode = self.get_number(r)
 
 class VirtualMachine(object):
     # http://code.activestate.com/recipes/66531-singleton-we-dont-need-no-stinkin-singleton-the-bo/
-    __shared_state__ = {
-        'fp': 0,
-        'frames': [],
-        'exitcode': None,
-    }
     def __init__(self):
-        self.__dict__ = self.__shared_state__
+        self.fp = 0
+        self.frames = []
+        self.exitcode = None
 
     def Execute(self, opcodes):
         self.frames = [Frame(opcodes, {})]
         while self.fp < len(self.frames):
             self.frames[self.fp].Execute()
             self.fp += 1
+
+VM = VirtualMachine()
 
 #class Code(object):
 #    '''
@@ -300,4 +299,4 @@ if __name__ == '__main__':
         ('EXIT',    Register(0)),
     ]
 
-    VirtualMachine().Execute(opcodes)
+    VM.Execute(opcodes)
