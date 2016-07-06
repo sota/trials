@@ -206,7 +206,7 @@ class Frame(object):
         assert isregister(args[0])
         v1 = self.get_number(args[1])
         v2 = self.get_number(args[2])
-        self.set_register(args[0], v1 ** v2)
+        opcodes.set_register(args[0], v1 ** v2)
 
     def CONCAT(self, *args):
         assert isregister(args[0])
@@ -222,8 +222,8 @@ class Frame(object):
         code = self.get_register(args[0])
 
     def CALL(self, *args):
-        code = self.get_register(args[1])
-        frame = Frame(code.opcodes, {})
+        opcodes = self.get_register(args[1])
+        frame = Frame(opcodes, {})
         VirtualMachine().frames += [frame]
         VirtualMachine().fp += 1
         result = frame.Execute()
@@ -248,25 +248,24 @@ class VirtualMachine(object):
     def __init__(self):
         self.__dict__ = self.__shared_state__
 
-    def Execute(self, code):
-        self.frames = [Frame(code, {})]
+    def Execute(self, opcodes):
+        self.frames = [Frame(opcodes, {})]
         while self.fp < len(self.frames):
             self.frames[self.fp].Execute()
             self.fp += 1
-        print 'VM.Execute: exitcode =', self.exitcode
 
-class Code(object):
-    '''
-    represents compiled code
-    in this case all of the opcodes for the function
-    '''
-    def __init__(self, opcodes):
-        self.opcodes = opcodes
+#class Code(object):
+#    '''
+#    represents compiled code
+#    in this case all of the opcodes for the function
+#    '''
+#    def __init__(self, opcodes):
+#        self.opcodes = opcodes
 
 if __name__ == '__main__':
 
     opcodes = [
-            ('STORE', Symbol('main'), Code([
+            ('STORE', Symbol('main'), [
             ('PRINT',   String('hello world')),
             ('LOADK',   Register(1), Number(10)),
             ('LOADK',   Register(2), Number(20)),
@@ -293,8 +292,8 @@ if __name__ == '__main__':
             ('STORE',   Symbol('smash'), String('mouth')),
             ('LOAD',    Register(1), Symbol('smash')),
             ('PRINT',   Register(1)),
-            ('RETURN', Register(0), Number(0)),
-        ])),
+            ('RETURN',  Register(0), Number(0)),
+        ]),
         ('LOAD', Register(1), Symbol('main')),
         ('CALL', Register(0), Register(1)),
         ('LOADK',   Register(0), Number(0)),
