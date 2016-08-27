@@ -35,21 +35,17 @@ def isdict(*objs):
     return all(map(lambda obj: isinstance(obj, dict), objs))
 
 class Function(object):
-    def __init__(self, code, env):
-        self.code = code
+    def __init__(self, opcodes, env):
+        self.opcodes = opcodes
         self.env = env
 
     def __repr__(self):
-        return 'Function(code=%s, env=%s)' % (self.code, self.env)
-
-    def Call(self, *args):
-        frame = Frame(func, env)
-        return frame.Execute(*args)
+        return 'Function(opcodes=%s, env=%s)' % (self.opcodes, self.env)
 
 class Frame(object):
-    def __init__(self, opcodes, env, parent=None):
-        self.opcodes = opcodes
-        self.env = env
+    def __init__(self, func, parent=None):
+        self.opcodes = func.opcodes
+        self.env = func.env
         self.parent = parent
         self.registers = []
         self.ip = 0
@@ -219,11 +215,13 @@ class Frame(object):
         print v
 
     def FUNC(self, *args):
-        code = self.get_register(args[0])
+        opcodes = self.get_register(args[1])
+        func = Function(opcodes)
+        self.set_register(args[0], func)
 
     def CALL(self, *args):
-        opcodes = self.get_register(args[1])
-        frame = Frame(opcodes, {})
+        func = self.get_register(args[1])
+        frame = Frame(func)
         VM.frames += [frame]
         VM.fp += 1
         result = frame.Execute()
@@ -245,8 +243,8 @@ class VirtualMachine(object):
         self.frames = []
         self.exitcode = None
 
-    def Execute(self, opcodes):
-        self.frames = [Frame(opcodes, {})]
+    def Execute(self, func):
+        self.frames = [Frame(func)]
         while self.fp < len(self.frames):
             self.frames[self.fp].Execute()
             self.fp += 1
@@ -264,7 +262,7 @@ VM = VirtualMachine()
 if __name__ == '__main__':
 
     opcodes = [
-            ('STORE', Symbol('main'), [
+            ('STORE', Symbol('main'), Function([
             ('PRINT',   String('hello world')),
             ('LOADK',   Register(1), Number(10)),
             ('LOADK',   Register(2), Number(20)),
@@ -292,11 +290,11 @@ if __name__ == '__main__':
             ('LOAD',    Register(1), Symbol('smash')),
             ('PRINT',   Register(1)),
             ('RETURN',  Register(0), Number(0)),
-        ]),
+        ], {})),
         ('LOAD', Register(1), Symbol('main')),
         ('CALL', Register(0), Register(1)),
         ('LOADK',   Register(0), Number(0)),
         ('EXIT',    Register(0)),
     ]
-
-    VM.Execute(opcodes)
+    func = Function(opcodes, {})
+    VM.Execute(func)
